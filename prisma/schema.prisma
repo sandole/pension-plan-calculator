@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
     provider = "prisma-client-js"
 }
@@ -14,16 +11,12 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
+enum PlanType {
+  DEFINED_BENEFIT
+  DEFINED_CONTRIBUTION
+  GROUP_RRSP
+  CPP
+  OAS
 }
 
 // Necessary for Next auth
@@ -62,7 +55,6 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
 }
 
 model VerificationToken {
@@ -71,4 +63,55 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model PensionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  type        PlanType
+  description String?
+  
+  // Plan details
+  accrualRate         Float?    // For defined benefit
+  employerMatch       Float?    // For defined contribution
+  vestingPeriodYears  Int?
+  
+  // Plan rules
+  retirementAge       Int
+  earlyRetirementAge  Int?
+  bridgeBenefit      Boolean   @default(false)
+  
+  // Integration details
+  cppIntegration     Boolean   @default(true)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  comparisons     PlanComparison[]
+}
+
+model PlanComparison {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  
+  // Input parameters
+  currentAge        Int
+  retirementAge     Int
+  currentSalary     Float
+  yearsOfService    Int
+  
+  // Assumptions
+  salaryGrowth      Float @default(0.02)
+  inflationRate     Float @default(0.02)
+  investmentReturn  Float @default(0.06)
+  
+  // Relations
+  plans      PensionPlan[]
+  
+  // Timestamps
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
