@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import type { PensionCalculationResult } from "~/types/pension";
 
 export const pensionRouter = createTRPCRouter({
   // Get all pension plans
@@ -24,9 +25,9 @@ export const pensionRouter = createTRPCRouter({
       yearsOfService: z.number(),
       planIds: z.array(z.string()),
     }))
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }): Promise<Record<string, PensionCalculationResult>> => {
       // Simple initial calculation
-      const results: Record<string, any> = {};
+      const results: Record<string, PensionCalculationResult> = {};
       
       // Get selected plans
       const plans = await ctx.db.pensionPlan.findMany({

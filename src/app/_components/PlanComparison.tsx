@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { api } from "~/trpc/react";
 import { Calculator, AlertCircle } from 'lucide-react';
+import type { PensionCalculationResult } from '~/types/pension';
 
 export default function PlanComparison() {
   const [userInputs, setUserInputs] = useState({
@@ -13,7 +14,7 @@ export default function PlanComparison() {
   });
 
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
-  const [calculationResults, setCalculationResults] = useState<Record<string, any> | null>(null);
+  const [calculationResults, setCalculationResults] = useState<Record<string, PensionCalculationResult> | null>(null);
 
   // Get all pension plans
   const plansQuery = api.pension.getPlans.useQuery();
