@@ -2,24 +2,22 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]  # or your default branch
-  
-  # Allow manual triggering
+    branches: [ main ]
   workflow_dispatch:
 
 env:
-  DATABASE_URL: ${{ secrets.DATABASE_URL }}  # Make sure to set this in repo secrets
-  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-  NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-  DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
-  DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+  AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+  NEXT_PUBLIC_BASE_PATH: "/pension-plan-calculator"
+  AUTH_DISCORD_ID: ${{ secrets.AUTH_DISCORD_ID }}
+  AUTH_DISCORD_SECRET: ${{ secrets.AUTH_DISCORD_SECRET }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -29,23 +27,30 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install tsx --save-dev
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
+      - name: Setup Database and Seed
+        run: |
+          npx prisma generate
+          # Add a delay to ensure DB connection is established
+          sleep 5
+          npx prisma db push --accept-data-loss
+          sleep 5
+          npx prisma db seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Build Project
         run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: "/pension-plan-calculator"
+          NODE_ENV: "production"
 
-      - name: Export Static Files
-        run: npm run export
-
-      - name: Add .nojekyll file
-        run: touch ./out/.nojekyll
-
-      - name: Deploy 🚀
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages  # The branch the action should deploy to
-          folder: out       # The folder the action should deploy
-          clean: true      # Automatically remove deleted files from the deployment
+          branch: gh-pages
+          folder: out
+          clean: true
