@@ -62,8 +62,8 @@ export const pensionRouter = createTRPCRouter({
       const results = comparison?.plans.map(plan => ({
         planId: plan.id,
         planName: plan.name,
-        monthlyBenefit: calculateMonthlyBenefit(plan, comparison),
-        totalValue: calculateTotalValue(plan, comparison),
+        monthlyBenefit: 0, // calculateMonthlyBenefit(plan, comparison),
+        totalValue: 0, // calculateTotalValue(plan, comparison),
         // Add more metrics as needed
       }));
 
@@ -71,13 +71,14 @@ export const pensionRouter = createTRPCRouter({
     }),
 });
 
-// Helper functions for calculations
-function calculateMonthlyBenefit(plan: any, comparison: any) {
-  // Implement actual calculation logic based on plan type
-  return 0; // Placeholder
-}
+// // TODO: Helper functions for calculations
+// function calculateMonthlyBenefit(plan: any, comparison: any) {
+//   // Implement actual calculation logic based on plan type
+//   return 0; // Placeholder
+// }
 
-function calculateTotalValue(plan: any, comparison: any) {
-  // Implement actual calculation logic based on plan type
-  return 0; // Placeholder
-}
+// // TODO: Helper functions for calculations
+// function calculateTotalValue(plan: any, comparison: any) {
+//   // Implement actual calculation logic based on plan type
+//   return 0; // Placeholder
+// }
