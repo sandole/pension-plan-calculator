@@ -38,7 +38,7 @@ export default async function Home() {
         {/* Features Grid */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Link href="/compare" className="underline">
+            <Link href={`${process.env.NEXT_PUBLIC_BASE_PATH}/compare`}>
               <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
                 <div className="space-y-4">
                   <Calculator className="h-12 w-12 text-[hsl(280,100%,70%)]" />
