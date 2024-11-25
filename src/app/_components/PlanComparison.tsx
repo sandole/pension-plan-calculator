@@ -12,11 +12,18 @@ export default function PlanComparison() {
     yearsOfService: ''
   });
 
+  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+  const [calculationResults, setCalculationResults] = useState<Record<string, any> | null>(null);
+
   // Get all pension plans
   const plansQuery = api.pension.getPlans.useQuery();
   
-  // Create comparison mutation
-  const createComparison = api.pension.createComparison.useMutation();
+  // Calculate benefits mutation
+  const calculateBenefits = api.pension.calculateBenefits.useMutation({
+    onSuccess: (data) => {
+      setCalculationResults(data);
+    },
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,10 +33,22 @@ export default function PlanComparison() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
-    createComparison.mutate({
-      name: "New Comparison",
+    
+    if (!selectedPlans.length) {
+      alert("Please select at least one plan to compare");
+      return;
+    }
+
+    // Validate inputs
+    if (!userInputs.currentAge || !userInputs.retirementAge || 
+        !userInputs.currentSalary || !userInputs.yearsOfService) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    calculateBenefits.mutate({
       currentAge: parseInt(userInputs.currentAge),
       retirementAge: parseInt(userInputs.retirementAge),
       currentSalary: parseFloat(userInputs.currentSalary),
@@ -38,7 +57,12 @@ export default function PlanComparison() {
     });
   };
 
-  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-CA', { 
+      style: 'currency', 
+      currency: 'CAD' 
+    }).format(amount);
+  };
 
   if (plansQuery.isLoading) {
     return (
@@ -55,7 +79,7 @@ export default function PlanComparison() {
       {/* User Information Form */}
       <div className="mb-12 bg-white/10 rounded-lg p-6">
         <h2 className="text-2xl font-bold text-white mb-6">Your Information</h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleCalculate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-200 mb-2">
               Current Age
@@ -67,6 +91,9 @@ export default function PlanComparison() {
               onChange={handleInputChange}
               className="w-full bg-white/5 rounded-lg border border-white/10 px-4 py-2 text-white"
               placeholder="Enter your current age"
+              required
+              min="18"
+              max="100"
             />
           </div>
           <div>
@@ -80,6 +107,9 @@ export default function PlanComparison() {
               onChange={handleInputChange}
               className="w-full bg-white/5 rounded-lg border border-white/10 px-4 py-2 text-white"
               placeholder="Enter planned retirement age"
+              required
+              min="55"
+              max="100"
             />
           </div>
           <div>
@@ -93,6 +123,8 @@ export default function PlanComparison() {
               onChange={handleInputChange}
               className="w-full bg-white/5 rounded-lg border border-white/10 px-4 py-2 text-white"
               placeholder="Enter your current salary"
+              required
+              min="0"
             />
           </div>
           <div>
@@ -106,7 +138,29 @@ export default function PlanComparison() {
               onChange={handleInputChange}
               className="w-full bg-white/5 rounded-lg border border-white/10 px-4 py-2 text-white"
               placeholder="Enter years of service"
+              required
+              min="0"
+              max="50"
             />
+          </div>
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={!selectedPlans.length || calculateBenefits.isPending}
+              className={`px-6 py-2 rounded-lg font-semibold transition-all
+                ${selectedPlans.length 
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                  : 'bg-gray-600 text-gray-300 cursor-not-allowed'}`}
+            >
+              {calculateBenefits.isPending ? (
+                <span className="flex items-center">
+                  <Calculator className="animate-spin mr-2 h-5 w-5" />
+                  Calculating...
+                </span>
+              ) : (
+                'Calculate Benefits'
+              )}
+            </button>
           </div>
         </form>
       </div>
@@ -156,30 +210,36 @@ export default function PlanComparison() {
         </div>
       </div>
 
-      {/* Comparison Results */}
-      {selectedPlans.length > 0 && createComparison.data && (
-        <div className="bg-white/10 rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-white mb-6">Comparison Results</h2>
+      {/* Calculation Results */}
+      {calculationResults && (
+        <div className="bg-white/10 rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Calculation Results</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {selectedPlans.map(planId => {
+            {Object.entries(calculationResults).map(([planId, result]) => {
               const plan = plansQuery.data?.find(p => p.id === planId);
               if (!plan) return null;
 
               return (
-                <div key={plan.id} className="bg-white/5 rounded-lg p-6">
+                <div key={planId} className="bg-white/5 rounded-lg p-6">
                   <h3 className="text-xl font-semibold text-white mb-4">{plan.name}</h3>
                   <div className="space-y-4">
                     <div className="border-t border-white/10 pt-4">
                       <p className="text-gray-300 mb-2">Monthly Benefit at Retirement</p>
-                      <p className="text-2xl font-bold text-white">$3,500</p>
+                      <p className="text-2xl font-bold text-white">
+                        {formatCurrency(result.monthlyBenefit)}
+                      </p>
                     </div>
                     <div className="border-t border-white/10 pt-4">
-                      <p className="text-gray-300 mb-2">Total Value</p>
-                      <p className="text-2xl font-bold text-white">$875,000</p>
+                      <p className="text-gray-300 mb-2">Annual Benefit</p>
+                      <p className="text-2xl font-bold text-white">
+                        {formatCurrency(result.yearlyBenefit)}
+                      </p>
                     </div>
                     <div className="border-t border-white/10 pt-4">
                       <p className="text-gray-300 mb-2">Income Replacement Ratio</p>
-                      <p className="text-2xl font-bold text-white">65%</p>
+                      <p className="text-2xl font-bold text-white">
+                        {result.replacementRatio.toFixed(1)}%
+                      </p>
                     </div>
                   </div>
                 </div>

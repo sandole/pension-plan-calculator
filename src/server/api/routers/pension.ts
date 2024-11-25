@@ -16,6 +16,80 @@ export const pensionRouter = createTRPCRouter({
       });
     }),
 
+  calculateBenefits: protectedProcedure
+    .input(z.object({
+      currentAge: z.number(),
+      retirementAge: z.number(),
+      currentSalary: z.number(),
+      yearsOfService: z.number(),
+      planIds: z.array(z.string()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Simple initial calculation
+      const results: Record<string, any> = {};
+      
+      // Get selected plans
+      const plans = await ctx.db.pensionPlan.findMany({
+        where: {
+          id: {
+            in: input.planIds
+          }
+        }
+      });
+
+      // Calculate benefits for each plan
+      for (const plan of plans) {
+        let monthlyBenefit = 0;
+        let yearlyBenefit = 0;
+        let replacementRatio = 0;
+
+        switch (plan.type) {
+          case 'DEFINED_BENEFIT':
+            if (plan.accrualRate) {
+              yearlyBenefit = input.currentSalary * plan.accrualRate * input.yearsOfService;
+              monthlyBenefit = yearlyBenefit / 12;
+              replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
+            }
+            break;
+
+          case 'DEFINED_CONTRIBUTION':
+            if (plan.employerMatch) {
+              // Simple projection assuming 5% annual return
+              const annualContribution = input.currentSalary * (plan.employerMatch * 2); // Employee + Employer
+              const years = input.retirementAge - input.currentAge;
+              const totalAccumulation = annualContribution * Math.pow(1.05, years);
+              yearlyBenefit = totalAccumulation * 0.04; // 4% withdrawal rule
+              monthlyBenefit = yearlyBenefit / 12;
+              replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
+            }
+            break;
+
+          case 'CPP':
+            // Simplified CPP calculation
+            const maxCPP = 1306.57; // 2024 maximum monthly CPP
+            const adjustmentFactor = input.retirementAge >= 65 ? 1 : 0.7; // 30% reduction for early retirement at 60
+            monthlyBenefit = maxCPP * adjustmentFactor;
+            yearlyBenefit = monthlyBenefit * 12;
+            replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
+            break;
+
+          default:
+            // Basic calculation for other types
+            yearlyBenefit = input.currentSalary * 0.02 * input.yearsOfService;
+            monthlyBenefit = yearlyBenefit / 12;
+            replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
+        }
+
+        results[plan.id] = {
+          monthlyBenefit,
+          yearlyBenefit,
+          replacementRatio
+        };
+      }
+
+      return results;
+    }),
+
   // Create a plan comparison
   createComparison: protectedProcedure
     .input(z.object({
