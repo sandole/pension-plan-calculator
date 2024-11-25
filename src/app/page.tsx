@@ -7,6 +7,8 @@ import { HydrateClient } from "~/trpc/server";
 export default async function Home() {
   const session = await auth();
 
+  console.log('Session in page:', JSON.stringify(session, null, 2));
+
   return (
     <HydrateClient>
       <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c]">
@@ -21,17 +23,43 @@ export default async function Home() {
           
           {/* Auth Section */}
           <div className="flex flex-col items-center gap-4 mb-8">
-            {session?.user && (
-              <p className="text-center text-xl">
-                Welcome back, {session.user.name}
-              </p>
+            {session?.user ? (
+              <>
+                <div className="text-center">
+                  <p className="text-xl">
+                    Welcome back, <span className="font-bold">{session.user.name}</span>!
+                  </p>
+                  {session.user.image && (
+                    <img 
+                      src={session.user.image} 
+                      alt={session.user.name ?? 'Profile'} 
+                      className="w-10 h-10 rounded-full mx-auto mt-2"
+                    />
+                  )}
+                </div>
+                <div className="flex gap-4">
+                  <Link
+                    href="/compare"
+                    className="rounded-full bg-[hsl(280,100%,70%)] px-10 py-3 font-semibold no-underline transition hover:bg-[hsl(280,100%,60%)]"
+                  >
+                    Compare Plans
+                  </Link>
+                  <Link
+                    href="/api/auth/signout"
+                    className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+                  >
+                    Sign out
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <Link
+                href="/api/auth/signin"
+                className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+              >
+                Sign in to Start
+              </Link>
             )}
-            <Link
-              href={session ? "/api/auth/signout" : "/api/auth/signin"}
-              className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-            >
-              {session ? "Sign out" : "Sign in to Start"}
-            </Link>
           </div>
         </div>
 
