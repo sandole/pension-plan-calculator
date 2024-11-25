@@ -5,12 +5,7 @@ import { auth } from "~/server/auth";
 import { api, HydrateClient } from "~/trpc/server";
 
 export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
   const session = await auth();
-
-  if (session?.user) {
-    void api.post.getLatest.prefetch();
-  }
 
   return (
     <HydrateClient>
@@ -43,15 +38,19 @@ export default async function Home() {
         {/* Features Grid */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
-              <div className="space-y-4">
-                <Calculator className="h-12 w-12 text-[hsl(280,100%,70%)]" />
-                <h3 className="text-xl font-semibold text-white">Multiple Plan Comparison</h3>
-                <p className="text-gray-300">
-                  Compare different pension plans side by side to find the best option for your retirement goals.
-                </p>
+            <Link href="/compare" className="underline">
+              <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
+                <div className="space-y-4">
+                  <Calculator className="h-12 w-12 text-[hsl(280,100%,70%)]" />
+                  <h3 className="text-xl font-semibold text-white">Multiple Plan Comparison</h3>
+                  <p className="text-gray-300">
+                    
+                      Compare different pension plans side by side to find the best option for your retirement goals.
+                  </p>
+                </div>
               </div>
-            </div>
+            </Link>
+
 
             <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
               <div className="space-y-4">
