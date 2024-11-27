@@ -3,9 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql" // Changed from mysql to postgresql
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider     = "postgresql" // Changed from mysql to postgresql
+  relationMode = "prisma"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
 }
 
 model PensionPlan {
@@ -31,6 +32,7 @@ model PensionPlan {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   PlanComparison   PlanComparison? @relation(fields: [planComparisonId], references: [id])
+  @@index([planComparisonId])
   planComparisonId String?
 }
 
@@ -68,6 +70,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
