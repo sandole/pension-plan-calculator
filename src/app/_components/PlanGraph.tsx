@@ -14,6 +14,11 @@ import {
 import { Calculator, AlertCircle } from 'lucide-react';
 import { api } from "~/trpc/react";
 
+interface TimelineDataPoint {
+  age: number;
+  [planName: string]: number;
+}
+
 export default function NetWorthGraph() {
   const [userInputs, setUserInputs] = useState({
     currentAge: '',
@@ -25,7 +30,7 @@ export default function NetWorthGraph() {
   });
 
   const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
-  const [projectionResults, setProjectionResults] = useState<any[] | null>(null);
+  const [projectionResults, setProjectionResults] = useState<TimelineDataPoint[] | null>(null);
 
   const plansQuery = api.pension.getPlans.useQuery();
   
