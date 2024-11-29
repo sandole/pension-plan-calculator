@@ -7,11 +7,42 @@ import { HydrateClient } from "~/trpc/server";
 export default async function Home() {
   const session = await auth();
 
-  console.log('Session in page:', JSON.stringify(session, null, 2));
-
   return (
     <HydrateClient>
       <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c]">
+        {/* Navigation Header */}
+        <header className="w-full py-4 px-6">
+          <div className="max-w-6xl mx-auto flex justify-end items-center">
+            <div className="flex items-center gap-4">
+              {session?.user ? (
+                <div className="flex items-center gap-4">
+                  {session.user.image && (
+                    <img 
+                      src={session.user.image} 
+                      alt={session.user.name ?? 'Profile'} 
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <span className="text-white">{session.user.name}</span>
+                  <Link
+                    href="/api/auth/signout"
+                    className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-white/20"
+                  >
+                    Sign out
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href="/api/auth/signin"
+                  className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-white/20"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
+          </div>
+        </header>
+
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center text-white">
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -20,47 +51,6 @@ export default async function Home() {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             Compare different pension plans, calculate your future benefits, and make informed decisions about your retirement.
           </p>
-          
-          {/* Auth Section */}
-          <div className="flex flex-col items-center gap-4 mb-8">
-            {session?.user ? (
-              <>
-                <div className="text-center">
-                  <p className="text-xl">
-                    Welcome back, <span className="font-bold">{session.user.name}</span>!
-                  </p>
-                  {session.user.image && (
-                    <img 
-                      src={session.user.image} 
-                      alt={session.user.name ?? 'Profile'} 
-                      className="w-10 h-10 rounded-full mx-auto mt-2"
-                    />
-                  )}
-                </div>
-                <div className="flex gap-4">
-                  <Link
-                    href="/compare"
-                    className="rounded-full bg-[hsl(280,100%,70%)] px-10 py-3 font-semibold no-underline transition hover:bg-[hsl(280,100%,60%)]"
-                  >
-                    Compare Plans
-                  </Link>
-                  <Link
-                    href="/api/auth/signout"
-                    className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-                  >
-                    Sign out
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <Link
-                href="/api/auth/signin"
-                className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-              >
-                Sign in to Start
-              </Link>
-            )}
-          </div>
         </div>
 
         {/* Features Grid */}
@@ -72,13 +62,11 @@ export default async function Home() {
                   <Calculator className="h-12 w-12 text-[hsl(280,100%,70%)]" />
                   <h3 className="text-xl font-semibold text-white">Multiple Plan Comparison</h3>
                   <p className="text-gray-300">
-                    
-                      Compare different pension plans side by side to find the best option for your retirement goals.
+                    Compare different pension plans side by side to find the best option for your retirement goals.
                   </p>
                 </div>
               </div>
             </Link>
-
 
             <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
               <div className="space-y-4">
@@ -90,15 +78,17 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
-              <div className="space-y-4">
-                <BarChart className="h-12 w-12 text-[hsl(280,100%,70%)]" />
-                <h3 className="text-xl font-semibold text-white">Visual Insights</h3>
-                <p className="text-gray-300">
-                  View detailed charts and projections to better understand your retirement income potential.
-                </p>
+            <Link href={`${process.env.NEXT_PUBLIC_BASE_PATH}/graph`}>
+              <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
+                <div className="space-y-4">
+                  <BarChart className="h-12 w-12 text-[hsl(280,100%,70%)]" />
+                  <h3 className="text-xl font-semibold text-white">Visual Insights</h3>
+                  <p className="text-gray-300">
+                    Visualize your retirement wealth growth over time with interactive graphs and projections.
+                  </p>
+                </div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 

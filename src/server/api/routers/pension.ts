@@ -2,13 +2,16 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import type { PensionCalculationResult } from "~/types/pension";
 
+export interface TimelineDataPoint {
+  age: number;
+  [planName: string]: number;
+}
+
 export const pensionRouter = createTRPCRouter({
-  // Get all pension plans
   getPlans: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.pensionPlan.findMany();
   }),
 
-  // Get specific plan details
   getPlan: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -26,10 +29,8 @@ export const pensionRouter = createTRPCRouter({
       planIds: z.array(z.string()),
     }))
     .mutation(async ({ ctx, input }): Promise<Record<string, PensionCalculationResult>> => {
-      // Simple initial calculation
       const results: Record<string, PensionCalculationResult> = {};
       
-      // Get selected plans
       const plans = await ctx.db.pensionPlan.findMany({
         where: {
           id: {
@@ -38,7 +39,6 @@ export const pensionRouter = createTRPCRouter({
         }
       });
 
-      // Calculate benefits for each plan
       for (const plan of plans) {
         let monthlyBenefit = 0;
         let yearlyBenefit = 0;
@@ -55,27 +55,24 @@ export const pensionRouter = createTRPCRouter({
 
           case 'DEFINED_CONTRIBUTION':
             if (plan.employerMatch) {
-              // Simple projection assuming 5% annual return
-              const annualContribution = input.currentSalary * (plan.employerMatch * 2); // Employee + Employer
+              const annualContribution = input.currentSalary * (plan.employerMatch * 2);
               const years = input.retirementAge - input.currentAge;
               const totalAccumulation = annualContribution * Math.pow(1.05, years);
-              yearlyBenefit = totalAccumulation * 0.04; // 4% withdrawal rule
+              yearlyBenefit = totalAccumulation * 0.04;
               monthlyBenefit = yearlyBenefit / 12;
               replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
             }
             break;
 
           case 'CPP':
-            // Simplified CPP calculation
-            const maxCPP = 1306.57; // 2024 maximum monthly CPP
-            const adjustmentFactor = input.retirementAge >= 65 ? 1 : 0.7; // 30% reduction for early retirement at 60
+            const maxCPP = 1306.57;
+            const adjustmentFactor = input.retirementAge >= 65 ? 1 : 0.7;
             monthlyBenefit = maxCPP * adjustmentFactor;
             yearlyBenefit = monthlyBenefit * 12;
             replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
             break;
 
           default:
-            // Basic calculation for other types
             yearlyBenefit = input.currentSalary * 0.02 * input.yearsOfService;
             monthlyBenefit = yearlyBenefit / 12;
             replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
@@ -91,7 +88,86 @@ export const pensionRouter = createTRPCRouter({
       return results;
     }),
 
-  // Create a plan comparison
+  calculateProjections: protectedProcedure
+    .input(z.object({
+      currentAge: z.number(),
+      retirementAge: z.number(),
+      currentSalary: z.number(),
+      yearsOfService: z.number(),
+      annualReturn: z.number(),
+      salaryGrowth: z.number(),
+      planIds: z.array(z.string())
+    }))
+    .mutation(async ({ ctx, input }): Promise<TimelineDataPoint[]> => {
+      const plans = await ctx.db.pensionPlan.findMany({
+        where: {
+          id: {
+            in: input.planIds
+          }
+        }
+      });
+
+      const timelineData: TimelineDataPoint[] = [];
+
+      for (let age = input.currentAge; age <= input.retirementAge; age++) {
+        const dataPoint: TimelineDataPoint = { age };
+        const yearsContributed = age - input.currentAge;
+        
+        const salaryAtAge = input.currentSalary * Math.pow(1 + input.salaryGrowth / 100, yearsContributed);
+
+        for (const plan of plans) {
+          let accumulatedValue = 0;
+
+          switch (plan.type) {
+            case 'DEFINED_BENEFIT':
+              if (plan.accrualRate) {
+                const yearsOfServiceAtAge = Math.min(yearsContributed + input.yearsOfService, 35);
+                const yearlyBenefit = salaryAtAge * (plan.accrualRate) * yearsOfServiceAtAge;
+                
+                const yearsToRetirement = input.retirementAge - age;
+                if (yearsToRetirement > 0) {
+                  accumulatedValue = yearlyBenefit / Math.pow(1 + input.annualReturn / 100, yearsToRetirement);
+                } else {
+                  accumulatedValue = yearlyBenefit;
+                }
+              }
+              break;
+
+            case 'DEFINED_CONTRIBUTION':
+              if (plan.employerMatch) {
+                const annualContribution = salaryAtAge * (plan.employerMatch * 2);
+                const rate = input.annualReturn / 100;
+                accumulatedValue = annualContribution * 
+                  ((Math.pow(1 + rate, yearsContributed) - 1) / rate) * (1 + rate);
+              }
+              break;
+
+            case 'CPP':
+              const maxCPP = 1306.57 * 12;
+              const adjustmentFactor = age >= 65 ? 1 : 0.7;
+              const yearlyBenefit = maxCPP * adjustmentFactor;
+              
+              const yearsToRetirement = input.retirementAge - age;
+              if (yearsToRetirement > 0) {
+                accumulatedValue = yearlyBenefit / Math.pow(1 + input.annualReturn / 100, yearsToRetirement);
+              } else {
+                accumulatedValue = yearlyBenefit;
+              }
+              break;
+
+            default:
+              accumulatedValue = salaryAtAge * 0.02 * yearsContributed;
+          }
+
+          dataPoint[plan.name] = Math.round(accumulatedValue);
+        }
+
+        timelineData.push(dataPoint);
+      }
+
+      return timelineData;
+    }),
+
   createComparison: protectedProcedure
     .input(z.object({
       name: z.string(),
@@ -123,7 +199,6 @@ export const pensionRouter = createTRPCRouter({
       });
     }),
 
-  // Get comparison results
   getComparisonResults: protectedProcedure
     .input(z.object({ comparisonId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -132,28 +207,13 @@ export const pensionRouter = createTRPCRouter({
         include: { plans: true },
       });
 
-      // Here you would implement the actual comparison logic
-      // This is just a placeholder structure
       const results = comparison?.plans.map(plan => ({
         planId: plan.id,
         planName: plan.name,
-        monthlyBenefit: 0, // calculateMonthlyBenefit(plan, comparison),
-        totalValue: 0, // calculateTotalValue(plan, comparison),
-        // Add more metrics as needed
+        monthlyBenefit: 0,
+        totalValue: 0,
       }));
 
       return results;
     }),
 });
-
-// // TODO: Helper functions for calculations
-// function calculateMonthlyBenefit(plan: any, comparison: any) {
-//   // Implement actual calculation logic based on plan type
-//   return 0; // Placeholder
-// }
-
-// // TODO: Helper functions for calculations
-// function calculateTotalValue(plan: any, comparison: any) {
-//   // Implement actual calculation logic based on plan type
-//   return 0; // Placeholder
-// }
