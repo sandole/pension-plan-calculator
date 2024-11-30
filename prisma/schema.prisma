@@ -10,30 +10,46 @@ datasource db {
 }
 
 model PensionPlan {
+  // Basic Information
   id          String   @id @default(cuid())
   name        String
   type        PlanType
   description String?
+  jurisdiction String     // Federal/Provincial/Municipal
+  sector      String     // Public/Private/Healthcare/Education
 
-  // Plan details
-  accrualRate        Float?
-  employerMatch      Float?
+  // Core Plan Details
+  accrualRate        Float?    // For DB plans
+  employerMatch      Float?    // For DC plans
   vestingPeriodYears Int?
-
-  // Plan rules
+  cppIntegration     Boolean   @default(true)
+  
+  // Retirement Rules
   retirementAge      Int
   earlyRetirementAge Int?
-  bridgeBenefit      Boolean @default(false)
+  bridgeBenefit      Boolean   @default(false)
 
-  // Integration details
-  cppIntegration Boolean @default(true)
+  // Plan Statistics
+  membershipSize     Int?      // Number of members
+  fundSize           Float?    // AUM in dollars
+  fundingStatus      Float?    // Funding ratio
+  investmentOptions  String[]  // For DC plans
 
-  // Timestamps
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  PlanComparison   PlanComparison? @relation(fields: [planComparisonId], references: [id])
+  // Contact & Reference Information
+  websiteUrl         String?
+  contactInfo        String?
+  sources            String[]  // Reference citations
+  
+  // Metadata
+  lastUpdated        DateTime  // Data verification date
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  PlanComparison     PlanComparison? @relation(fields: [planComparisonId], references: [id])
+  planComparisonId   String?
+
   @@index([planComparisonId])
-  planComparisonId String?
 }
 
 model Account {
