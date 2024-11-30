@@ -216,4 +216,78 @@ export const pensionRouter = createTRPCRouter({
 
       return results;
     }),
+
+    calculateDetailedBenefits: protectedProcedure
+    .input(z.object({
+      currentAge: z.number(),
+      retirementAge: z.number(),
+      currentSalary: z.number(),
+      yearsOfService: z.number(),
+      planId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const plan = await ctx.db.pensionPlan.findUnique({
+        where: { id: input.planId },
+      });
+  
+      if (!plan) {
+        throw new Error("Plan not found");
+      }
+  
+      let monthlyBenefit = 0;
+      let yearlyBenefit = 0;
+      let totalContributions = 0;
+      let replacementRatio = 0;
+      let bridgeBenefit;
+      let earlyRetirementPenalty;
+  
+      const yearsUntilRetirement = input.retirementAge - input.currentAge;
+      const contributionRate = plan.type === 'DEFINED_BENEFIT' ? 0.10 : 0.05;
+      totalContributions = input.currentSalary * contributionRate * (input.yearsOfService + yearsUntilRetirement);
+  
+      switch (plan.type) {
+        case 'DEFINED_BENEFIT':
+          if (plan.accrualRate) {
+            yearlyBenefit = input.currentSalary * plan.accrualRate * input.yearsOfService;
+            
+            if (plan.bridgeBenefit && input.retirementAge < 65) {
+              bridgeBenefit = yearlyBenefit * 0.2;
+            }
+  
+            if (plan.earlyRetirementAge && input.retirementAge < plan.retirementAge) {
+              const earlyYears = plan.retirementAge - input.retirementAge;
+              earlyRetirementPenalty = yearlyBenefit * (0.05 * earlyYears);
+              yearlyBenefit -= earlyRetirementPenalty;
+            }
+          }
+          break;
+  
+        case 'DEFINED_CONTRIBUTION':
+          if (plan.employerMatch) {
+            const annualContribution = input.currentSalary * (plan.employerMatch * 2);
+            const totalAccumulation = annualContribution * Math.pow(1.06, yearsUntilRetirement);
+            yearlyBenefit = totalAccumulation * 0.04;
+          }
+          break;
+  
+        case 'CPP':
+          const maxCPP = 1306.57;
+          const adjustmentFactor = input.retirementAge >= 65 ? 1 : 0.7;
+          monthlyBenefit = maxCPP * adjustmentFactor;
+          yearlyBenefit = monthlyBenefit * 12;
+          break;
+      }
+  
+      monthlyBenefit = yearlyBenefit / 12;
+      replacementRatio = (yearlyBenefit / input.currentSalary) * 100;
+  
+      return {
+        monthlyBenefit,
+        yearlyBenefit,
+        totalContributions,
+        replacementRatio,
+        bridgeBenefit,
+        earlyRetirementPenalty
+      };
+    }),
 });

@@ -71,15 +71,17 @@ export default async function Home() {
               </div>
             </Link>
 
-            <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
-              <div className="space-y-4">
-                <DollarSign className="h-12 w-12 text-[hsl(280,100%,70%)]" />
-                <h3 className="text-xl font-semibold text-white">Accurate Calculations</h3>
-                <p className="text-gray-300">
-                  Get precise estimates of your future pension payments based on your salary and years of service.
-                </p>
+            <Link href={`${process.env.NEXT_PUBLIC_BASE_PATH}/calculate`}>
+              <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
+                <div className="space-y-4">
+                  <DollarSign className="h-12 w-12 text-[hsl(280,100%,70%)]" />
+                  <h3 className="text-xl font-semibold text-white">Accurate Calculations</h3>
+                  <p className="text-gray-300">
+                    Get precise estimates of your future pension payments based on your salary and years of service.
+                  </p>
+                </div>
               </div>
-            </div>
+            </Link>
 
             <Link href={`${process.env.NEXT_PUBLIC_BASE_PATH}/graph`}>
               <div className="rounded-lg bg-white/10 p-6 transition hover:bg-white/20">
