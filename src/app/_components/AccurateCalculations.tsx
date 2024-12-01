@@ -6,6 +6,7 @@ import { Layout } from './shared/Layout';
 import { UserInputForm } from './shared/UserInputForm';
 import { Warning } from './shared/Warning';
 import { LoadingSpinner } from './shared/LoadingSpinner';
+import { PlanSelector } from './shared/PlanSelector';
 
 interface DetailedCalculationResult {
   monthlyBenefit: number;
@@ -72,50 +73,6 @@ export default function AccurateCalculations() {
   if (plansQuery.isLoading) {
     return <LoadingSpinner />;
   }
-
-  const PlanSelector = (
-    <div className="bg-white/10 rounded-lg p-6 sticky top-6">
-      <h2 className="text-2xl font-bold text-white mb-6">Select a Plan</h2>
-      <div className="space-y-4">
-        {plansQuery.data?.map((plan) => (
-          <div
-            key={plan.id}
-            className={`p-4 rounded-lg cursor-pointer transition-all ${
-              selectedPlan === plan.id
-                ? 'bg-purple-600 border-2 border-purple-400'
-                : 'bg-white/10 border border-white/10 hover:bg-white/20'
-            }`}
-            onClick={() => setSelectedPlan(plan.id)}
-          >
-            <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-            <p className="text-sm text-gray-300 mb-2">{plan.description}</p>
-            <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
-              {plan.accrualRate && (
-                <div>
-                  <span className="font-medium">Accrual Rate:</span>
-                  <span className="ml-2">{(plan.accrualRate * 100).toFixed(1)}%</span>
-                </div>
-              )}
-              <div>
-                <span className="font-medium">Type:</span>
-                <span className="ml-2">{plan.type}</span>
-              </div>
-              <div>
-                <span className="font-medium">Retirement Age:</span>
-                <span className="ml-2">{plan.retirementAge}</span>
-              </div>
-              {plan.earlyRetirementAge && (
-                <div>
-                  <span className="font-medium">Early Retirement:</span>
-                  <span className="ml-2">{plan.earlyRetirementAge}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   const ResultsSection = calculationResult && (
     <div className="bg-white/10 rounded-lg p-6">
@@ -191,10 +148,18 @@ export default function AccurateCalculations() {
     </>
   );
 
+  const rightColumn = (
+    <PlanSelector
+      plans={plansQuery.data ?? []}
+      selectedPlans={selectedPlan ? [selectedPlan] : []}
+      onPlanSelect={(planIds) => setSelectedPlan(planIds[0] ?? '')}
+    />
+  );
+
   return (
     <Layout
       leftColumn={leftColumn}
-      rightColumn={PlanSelector}
+      rightColumn={rightColumn}
     />
   );
 }
