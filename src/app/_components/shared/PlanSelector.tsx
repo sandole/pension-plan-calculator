@@ -21,8 +21,8 @@ export function PlanSelector({ plans, selectedPlans, onPlanSelect }: PlanSelecto
 
   // Filter plans based on search term
   const filteredPlans = plans.filter(plan =>
-    plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ??
+    plan.description?.toLowerCase().includes(searchTerm.toLowerCase()) ??
     plan.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
