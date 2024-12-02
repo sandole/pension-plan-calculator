@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import DiscordProvider from "next-auth/providers/discord";
+import GoogleProvider from "next-auth/providers/google";
 
 import { env } from "~/env.js";
 import { db } from "~/server/db";
@@ -35,6 +36,11 @@ export const authConfig = {
     DiscordProvider({
       clientId: env.AUTH_DISCORD_ID,
       clientSecret: env.AUTH_DISCORD_SECRET,
+    }),
+    GoogleProvider({
+      clientId: env.AUTH_GOOGLE_ID,
+      clientSecret: env.AUTH_GOOGLE_SECRET,
+      allowDangerousEmailAccountLinking: true
     }),
   ],
   session: {
