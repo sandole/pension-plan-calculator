@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from 'react';
 import { api } from "~/trpc/react";
 import type { SavedCalculation } from "~/types/pension";
