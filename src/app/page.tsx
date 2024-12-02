@@ -13,14 +13,24 @@ export default async function Home() {
       <main className="min-h-screen bg-gradient-to-b from-[#2e026d] to-[#15162c]">
         {/* Navigation Header */}
         <header className="w-full py-4 px-6">
-          <div className="max-w-6xl mx-auto flex justify-end items-center">
+          <div className="max-w-6xl mx-auto flex justify-between items-center"> 
+            {session?.user && (
+              <nav className="flex items-center gap-4">
+                <Link
+                  href={`${process.env.NEXT_PUBLIC_BASE_PATH}/dashboard`}
+                  className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-white/20"
+                >
+                  Dashboard
+                </Link>
+              </nav>
+            )}
             <div className="flex items-center gap-4">
               {session?.user ? (
                 <div className="flex items-center gap-4">
                   {session.user.image && (
-                    <Image 
-                      src={session.user.image} 
-                      alt={session.user.name ?? 'Profile'} 
+                    <Image
+                      src={session.user.image}
+                      alt={session.user.name ?? 'Profile'}
                       width={32}
                       height={32}
                       className="rounded-full"

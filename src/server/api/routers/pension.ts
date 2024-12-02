@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import type { PensionCalculationResult } from "~/types/pension";
+import type { SavedCalculation, PensionCalculationResult } from "~/types/pension";
 
 export interface TimelineDataPoint {
   age: number;
@@ -289,5 +290,87 @@ export const pensionRouter = createTRPCRouter({
         bridgeBenefit,
         earlyRetirementPenalty
       };
+    }),
+
+    getSavedCalculations: protectedProcedure
+    .query(async ({ ctx }): Promise<SavedCalculation[]> => {
+      const calculations = await ctx.db.savedCalculation.findMany({
+        where: {
+          userId: ctx.session.user.id
+        },
+        include: {
+          plans: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      
+      return calculations;
+    }),
+
+  saveCalculation: protectedProcedure
+    .input(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      currentAge: z.number(),
+      retirementAge: z.number(),
+      currentSalary: z.number(),
+      yearsOfService: z.number(),
+      monthlyBenefit: z.number(),
+      yearlyBenefit: z.number(),
+      replacementRatio: z.number(),
+      planIds: z.array(z.string()),
+      salaryGrowth: z.number().optional(),
+      inflationRate: z.number().optional(),
+      investmentReturn: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.savedCalculation.create({
+        data: {
+          userId: ctx.session.user.id,
+          name: input.name,
+          description: input.description,
+          currentAge: input.currentAge,
+          retirementAge: input.retirementAge,
+          currentSalary: input.currentSalary,
+          yearsOfService: input.yearsOfService,
+          monthlyBenefit: input.monthlyBenefit,
+          yearlyBenefit: input.yearlyBenefit,
+          replacementRatio: input.replacementRatio,
+          salaryGrowth: input.salaryGrowth ?? 0.02,
+          inflationRate: input.inflationRate ?? 0.02,
+          investmentReturn: input.investmentReturn ?? 0.06,
+          plans: {
+            connect: input.planIds.map(id => ({ id })),
+          },
+        },
+      });
+    }),
+
+  deleteCalculation: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const calculation = await ctx.db.savedCalculation.findFirst({
+        where: {
+          id: input.id,
+          userId: ctx.session.user.id,
+        },
+      });
+
+      if (!calculation) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Calculation not found or you do not have permission to delete it',
+        });
+      }
+
+      return ctx.db.savedCalculation.delete({
+        where: {
+          id: input.id,
+        },
+      });
     }),
 });

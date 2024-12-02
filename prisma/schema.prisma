@@ -48,6 +48,7 @@ model PensionPlan {
   // Relations
   PlanComparison     PlanComparison? @relation(fields: [planComparisonId], references: [id])
   planComparisonId   String?
+  savedCalculations  SavedCalculation[]
 
   @@index([planComparisonId])
 }
@@ -91,13 +92,14 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  id               String             @id @default(cuid())
+  name             String?
+  email            String?            @unique
+  emailVerified    DateTime?
+  image            String?
+  accounts         Account[]
+  sessions         Session[]
+  savedCalculations SavedCalculation[]
 }
 
 model VerificationToken {
@@ -130,4 +132,35 @@ model PlanComparison {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SavedCalculation {
+  id          String      @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Input parameters
+  currentAge     Int
+  retirementAge  Int
+  currentSalary  Float
+  yearsOfService Int
+  
+  // Assumptions
+  salaryGrowth     Float @default(0.02)
+  inflationRate    Float @default(0.02)
+  investmentReturn Float @default(0.06)
+  
+  // Results
+  monthlyBenefit  Float
+  yearlyBenefit   Float
+  replacementRatio Float
+  
+  // Relations
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plans         PensionPlan[]
+  
+  @@index([userId])
 }
