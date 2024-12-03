@@ -11,44 +11,44 @@ datasource db {
 
 model PensionPlan {
   // Basic Information
-  id          String   @id @default(cuid())
-  name        String
-  type        PlanType
-  description String?
-  jurisdiction String     // Federal/Provincial/Municipal
-  sector      String     // Public/Private/Healthcare/Education
+  id           String   @id @default(cuid())
+  name         String
+  type         PlanType
+  description  String?
+  jurisdiction String // Federal/Provincial/Municipal
+  sector       String // Public/Private/Healthcare/Education
 
   // Core Plan Details
-  accrualRate        Float?    // For DB plans
-  employerMatch      Float?    // For DC plans
+  accrualRate        Float? // For DB plans
+  employerMatch      Float? // For DC plans
   vestingPeriodYears Int?
-  cppIntegration     Boolean   @default(true)
-  
+  cppIntegration     Boolean @default(true)
+
   // Retirement Rules
   retirementAge      Int
   earlyRetirementAge Int?
-  bridgeBenefit      Boolean   @default(false)
+  bridgeBenefit      Boolean @default(false)
 
   // Plan Statistics
-  membershipSize     Int?      // Number of members
-  fundSize           Float?    // AUM in dollars
-  fundingStatus      Float?    // Funding ratio
-  investmentOptions  String[]  // For DC plans
+  membershipSize    Int? // Number of members
+  fundSize          Float? // AUM in dollars
+  fundingStatus     Float? // Funding ratio
+  investmentOptions String[] // For DC plans
 
   // Contact & Reference Information
-  websiteUrl         String?
-  contactInfo        String?
-  sources            String[]  // Reference citations
-  
+  websiteUrl  String?
+  contactInfo String?
+  sources     String[] // Reference citations
+
   // Metadata
-  lastUpdated        DateTime  // Data verification date
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  lastUpdated DateTime // Data verification date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  PlanComparison     PlanComparison? @relation(fields: [planComparisonId], references: [id])
-  planComparisonId   String?
-  savedCalculations  SavedCalculation[]
+  PlanComparison    PlanComparison?    @relation(fields: [planComparisonId], references: [id])
+  planComparisonId  String?
+  savedCalculations SavedCalculation[]
 
   @@index([planComparisonId])
 }
@@ -92,13 +92,13 @@ model Session {
 }
 
 model User {
-  id               String             @id @default(cuid())
-  name             String?
-  email            String?            @unique
-  emailVerified    DateTime?
-  image            String?
-  accounts         Account[]
-  sessions         Session[]
+  id                String             @id @default(cuid())
+  name              String?
+  email             String?            @unique
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[]
+  sessions          Session[]
   savedCalculations SavedCalculation[]
 }
 
@@ -135,32 +135,32 @@ model PlanComparison {
 }
 
 model SavedCalculation {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   name        String
   description String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   // Input parameters
   currentAge     Int
   retirementAge  Int
   currentSalary  Float
   yearsOfService Int
-  
+
   // Assumptions
   salaryGrowth     Float @default(0.02)
   inflationRate    Float @default(0.02)
   investmentReturn Float @default(0.06)
-  
+
   // Results
-  monthlyBenefit  Float
-  yearlyBenefit   Float
+  monthlyBenefit   Float
+  yearlyBenefit    Float
   replacementRatio Float
-  
+
   // Relations
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plans         PensionPlan[]
-  
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plans PensionPlan[]
+
   @@index([userId])
 }
