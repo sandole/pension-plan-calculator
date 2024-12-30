@@ -47,8 +47,7 @@ export const pensionRouter = createTRPCRouter({
       }
     }),
 
-  // Protected Mutations
-  calculateBenefits: protectedProcedure
+    calculateBenefits: publicProcedure
     .input(z.object({
       currentAge: z.number(),
       retirementAge: z.number(),
@@ -113,23 +112,28 @@ export const pensionRouter = createTRPCRouter({
             replacementRatio
           };
 
-          // Save calculation to database
-          await ctx.db.savedCalculation.create({
-            data: {
-              userId: ctx.session.user.id,
-              name: `Calculation for ${plan.name}`,
-              currentAge: input.currentAge,
-              retirementAge: input.retirementAge,
-              currentSalary: input.currentSalary,
-              yearsOfService: input.yearsOfService,
-              monthlyBenefit,
-              yearlyBenefit,
-              replacementRatio,
-              plans: {
-                connect: [{ id: plan.id }]
-              }
+          if (ctx.session?.user) {
+            try {
+              await ctx.db.savedCalculation.create({
+                data: {
+                  userId: ctx.session.user.id,
+                  name: `Calculation for ${plan.name}`,
+                  currentAge: input.currentAge,
+                  retirementAge: input.retirementAge,
+                  currentSalary: input.currentSalary,
+                  yearsOfService: input.yearsOfService,
+                  monthlyBenefit,
+                  yearlyBenefit,
+                  replacementRatio,
+                  plans: {
+                    connect: [{ id: plan.id }]
+                  }
+                }
+              });
+            } catch (error) {
+              console.error('Failed to save calculation:', error);
             }
-          });
+          }
         }
 
         return results;
