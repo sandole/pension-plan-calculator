@@ -1,0 +1,15 @@
+name: Database Health Check
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  health_check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Database Health Check
+        run: |
+          curl -X GET https://pension-plan-calculator.vercel.app/api/health-check
