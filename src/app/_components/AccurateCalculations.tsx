@@ -29,7 +29,18 @@ export default function AccurateCalculations() {
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [calculationResult, setCalculationResult] = useState<DetailedCalculationResult | null>(null);
 
-  const saveCalculation = api.pension.saveCalculation.useMutation();
+  const plansQuery = api.pension.getPlans.useQuery();
+  
+  const calculateDetailedBenefits = api.pension.calculateDetailedBenefits.useMutation({
+    onSuccess: (data) => {
+      setCalculationResult(data);
+      alert("Calculation completed and saved successfully!");
+    },
+    onError: (error) => {
+      console.error("Error during calculation:", error);
+      alert("Failed to calculate benefits. Please try again.");
+    }
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -47,39 +58,22 @@ export default function AccurateCalculations() {
       return;
     }
 
-    const result = await calculateDetailedBenefits.mutateAsync({
-      currentAge: parseInt(userInputs.currentAge),
-      retirementAge: parseInt(userInputs.retirementAge),
-      currentSalary: parseFloat(userInputs.currentSalary),
-      yearsOfService: parseInt(userInputs.yearsOfService),
-      planId: selectedPlan,
-    });
-  
-    setCalculationResult(result);
-
-    await saveCalculation.mutateAsync({
-      name: `Calculation for ${selectedPlan}`,
-      description: "",
-      currentAge: parseInt(userInputs.currentAge),
-      retirementAge: parseInt(userInputs.retirementAge),
-      currentSalary: parseFloat(userInputs.currentSalary),
-      yearsOfService: parseInt(userInputs.yearsOfService),
-      monthlyBenefit: result.monthlyBenefit,
-      yearlyBenefit: result.yearlyBenefit,
-      replacementRatio: result.replacementRatio,
-      planIds: [selectedPlan],
-    });
-  
-    alert("Calculation saved successfully!");
+    try {
+      await calculateDetailedBenefits.mutateAsync({
+        currentAge: parseInt(userInputs.currentAge),
+        retirementAge: parseInt(userInputs.retirementAge),
+        currentSalary: parseFloat(userInputs.currentSalary),
+        yearsOfService: parseInt(userInputs.yearsOfService),
+        planId: selectedPlan,
+      });
+    } catch (error) {
+      console.error("Error during calculation:", error);
+    }
   };
 
-  const plansQuery = api.pension.getPlans.useQuery();
-
-  const calculateDetailedBenefits = api.pension.calculateDetailedBenefits.useMutation({
-    onSuccess: (data) => {
-      setCalculationResult(data);
-    },
-  });
+  if (plansQuery.isLoading) {
+    return <LoadingSpinner />;
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
@@ -88,10 +82,6 @@ export default function AccurateCalculations() {
       maximumFractionDigits: 2
     }).format(amount);
   };
-
-  if (plansQuery.isLoading) {
-    return <LoadingSpinner />;
-  }
 
   const ResultsSection = calculationResult && (
     <div className="bg-white/10 rounded-lg p-6">
