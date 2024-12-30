@@ -29,13 +29,7 @@ export default function AccurateCalculations() {
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [calculationResult, setCalculationResult] = useState<DetailedCalculationResult | null>(null);
 
-  const plansQuery = api.pension.getPlans.useQuery();
-  
-  const calculateDetailedBenefits = api.pension.calculateDetailedBenefits.useMutation({
-    onSuccess: (data) => {
-      setCalculationResult(data);
-    },
-  });
+  const saveCalculation = api.pension.saveCalculation.useMutation();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,26 +39,51 @@ export default function AccurateCalculations() {
     }));
   };
 
-  const handleCalculate = (e: React.FormEvent) => {
+  const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedPlan) {
       alert("Please select a plan for detailed calculation");
       return;
     }
 
-    calculateDetailedBenefits.mutate({
+    const result = await calculateDetailedBenefits.mutateAsync({
       currentAge: parseInt(userInputs.currentAge),
       retirementAge: parseInt(userInputs.retirementAge),
       currentSalary: parseFloat(userInputs.currentSalary),
       yearsOfService: parseInt(userInputs.yearsOfService),
-      planId: selectedPlan
+      planId: selectedPlan,
     });
+  
+    setCalculationResult(result);
+
+    await saveCalculation.mutateAsync({
+      name: `Calculation for ${selectedPlan}`,
+      description: "",
+      currentAge: parseInt(userInputs.currentAge),
+      retirementAge: parseInt(userInputs.retirementAge),
+      currentSalary: parseFloat(userInputs.currentSalary),
+      yearsOfService: parseInt(userInputs.yearsOfService),
+      monthlyBenefit: result.monthlyBenefit,
+      yearlyBenefit: result.yearlyBenefit,
+      replacementRatio: result.replacementRatio,
+      planIds: [selectedPlan],
+    });
+  
+    alert("Calculation saved successfully!");
   };
 
+  const plansQuery = api.pension.getPlans.useQuery();
+
+  const calculateDetailedBenefits = api.pension.calculateDetailedBenefits.useMutation({
+    onSuccess: (data) => {
+      setCalculationResult(data);
+    },
+  });
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-CA', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-CA', {
+      style: 'currency',
       currency: 'CAD',
       maximumFractionDigits: 2
     }).format(amount);
@@ -140,7 +159,7 @@ export default function AccurateCalculations() {
         selectedPlans={selectedPlan ? [selectedPlan] : []}
       />
       {ResultsSection}
-      <Warning 
+      <Warning
         message="These calculations are estimates based on current information and assumptions. 
                 Actual benefits may vary based on specific plan rules and conditions. 
                 Please consult with your pension plan administrator for official calculations."
